@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<!-- Chosen Palette: Warm Neutral with Teal Accent -->
+<!-- Application Structure Plan: He diseñado una SPA (Single-Page Application) con navegación por pestañas (Inicio, Contenido, Evaluación, Calendario, Tutorías). Esta estructura se eligió porque los estudiantes no leen una guía de forma lineal; buscan tareas específicas (p. ej., "¿Cuándo es el examen?", "¿Cómo se califica?", "¿Cuál es el temario?"). Las pestañas mapean directamente estas tareas, proporcionando acceso instantáneo y una arquitectura de información mucho más lógica y usable que el documento original. La navegación se maneja con JS para mostrar/ocultar las secciones de contenido correspondientes. -->
+<!-- Visualization & Content Choices: 
+1. Report Info: Ponderación de Resultados de Aprendizaje (RA1: 10%, RA2: 10%, RA3: 45%, RA4: 35%).
+   - Goal: Informar (Comparar proporciones).
+   - Viz/Method: Gráfico de Donut (Chart.js).
+   - Interaction: Hover para ver tooltip con el nombre del RA y su peso.
+   - Justification: Un gráfico de donut es la forma más clara e instantánea de comunicar la importancia relativa de cada bloque de aprendizaje, mucho más eficaz que una simple lista de texto.
+   - Library/Method: Chart.js (Canvas).
+2. Report Info: Situaciones de Aprendizaje (SA 1-6 y sus temas).
+   - Goal: Organizar (Jerarquía explorable).
+   - Viz/Method: Lista de Acordeón/Colapsable.
+   - Interaction: Clic en el título de una SA para expandir/colapsar (mostrar/ocultar) la lista de temas detallados.
+   - Justification: El temario es denso. Un acordeón lo mantiene limpio y escaneable, permitiendo al estudiante enfocarse solo en la unidad que le interesa sin 'ruido' visual.
+   - Library/Method: Vanilla JS (manejadores de clic, toggle de clases 'hidden' de Tailwind).
+3. Report Info: Fechas Clave (Exámenes, Hitos del curso).
+   - Goal: Informar (Línea de tiempo).
+   - Viz/Method: Lista de eventos clave estructurada (HTML/CSS).
+   - Interaction: Ninguna, es una lista de solo lectura.
+   - Justification: El calendario completo del informe original es abrumador. Esta SPA extrae solo las fechas más críticas (exámenes, inicio/fin de bloques) y las presenta de forma limpia y priorizada.
+   - Library/Method: HTML/Tailwind.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Didáctica: Introducción a la Nube Pública</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcfbf9;
+            color: #1f2937;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            max-height: 350px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .nav-link {
+            padding: 0.75rem 1rem;
+            margin: 0 0.25rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            color: #374151;
+            transition: all 0.2s ease-in-out;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: #e5e7eb;
+            color: #111827;
+        }
+
+        .nav-link-active {
+            color: #0d9488;
+            border-bottom-color: #0d9488;
+            font-weight: 600;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+            padding: 1.5rem;
+        }
+
+        .accordion-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #111827;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .accordion-button:hover {
+            background-color: #f9fafb;
+        }
+
+        .accordion-content {
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-top: 0;
+            border-radius: 0 0 0.5rem 0.5rem;
+            background-color: #fdfdfd;
+        }
+
+        .accordion-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+
+        .accordion-arrow {
+            transition: transform 0.3s;
+        }
+
+        .accordion-button.open .accordion-arrow {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+
+        <!-- Portada y Título -->
+        <header class="mb-6 p-6 bg-white rounded-lg shadow border border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-teal-700">Guía Didáctica: Introducción a la Nube Pública</h1>
+                    <p class="text-xl text-gray-600 mt-1">Desarrollo de Aplicaciones Web (DAW) | 2025-2026</p>
+                </div>
+                <div class="text-left md:text-right mt-4 md:mt-0">
+                    <p class="text-md font-medium text-gray-700"><strong>Profesor/a:</strong> Ana J. Martínez Montesinos
+                    </p>
+                    <p class="text-sm text-gray-500">Modalidad Semipresencial</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegación por Pestañas -->
+        <nav class="flex flex-wrap justify-center bg-white p-2 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <button class="nav-link nav-link-active" data-target="inicio">Inicio</button>
+            <button class="nav-link" data-target="contenido">Contenido</button>
+            <button class="nav-link" data-target="evaluacion">Evaluación</button>
+            <button class="nav-link" data-target="calendario">Calendario</button>
+            <button class="nav-link" data-target="tutorias">Tutorías y Contacto</button>
+        </nav>
+
+        <!-- Contenedor Principal de Contenido -->
+        <main>
+            <!-- SECCIÓN 1: INICIO -->
+            <section id="inicio" class="content-section card">
+                <p class="text-lg text-gray-600 mb-6">
+                    Bienvenido a la guía interactiva del módulo. Esta aplicación centraliza toda la información que
+                    necesitas para cursar con éxito la asignatura. Navega por las pestañas para explorar el temario,
+                    entender cómo serás evaluado y conocer las fechas clave.
+                </p>
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-3">Presentación</h2>
+                        <p>La Formación Profesional semipresencial tiene como finalidad la formación de personas que
+                            quieren mejorar su cualificación o prepararse para otras profesiones y que, por
+                            circunstancias personales, no pueden cursar en régimen presencial. Esta modalidad ofrece
+                            autonomía, flexibilidad y acceso 24/7 a los materiales a través de la plataforma AULES.</p>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-3">Descripción del Módulo</h2>
+                        <p>Este módulo optativo de <strong>100 horas</strong> se imparte en el segundo curso de DAW.
+                            Está enfocado en proporcionar las competencias para comprender, diseñar, desplegar y
+                            gestionar infraestructuras y servicios en un proveedor de nube pública, con un enfoque
+                            práctico en <strong>Amazon Web Services (AWS)</strong>.</p>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-3">Metodología</h2>
+                        <p>Se seguirá una metodología activa, centrada en el <strong>Aprendizaje Basado en la Resolución
+                                de Problemas (ABP)</strong>. Serás el protagonista de tu aprendizaje, aplicando los
+                            conceptos teóricos en supuestos prácticos (laboratorios de AWS) y en un proyecto final. Se
+                            espera que trabajes activamente con la documentación técnica oficial, una habilidad clave en
+                            el entorno laboral.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: CONTENIDO -->
+            <section id="contenido" class="content-section card">
+                <p class="text-lg text-gray-600 mb-6">
+                    El módulo está diseñado para llevarte desde los conceptos fundamentales de la nube hasta el
+                    despliegue de arquitecturas web completas. El contenido se divide en Resultados de Aprendizaje (lo
+                    que sabrás hacer) y Situaciones de Aprendizaje (cómo lo aprenderás).
+                </p>
+
+                <h2 class="text-2xl font-semibold text-teal-700 mb-4">Resultados de Aprendizaje (RA)</h2>
+                <ul class="list-disc pl-5 space-y-2 mb-8">
+                    <li><strong>RA1:</strong> Comprender los fundamentos, ventajas, migración y costes de la computación
+                        en la nube.</li>
+                    <li><strong>RA2:</strong> Identificar la infraestructura global de la nube y aplicar medidas básicas
+                        de seguridad y gestión de acceso.</li>
+                    <li><strong>RA3:</strong> Diseñar y configurar redes virtuales, servicios de cómputo (VPC, EC2,
+                        Lambda) y estrategias de escalado para entornos web.</li>
+                    <li><strong>RA4:</strong> Gestionar servicios de almacenamiento (S3, EBS) y bases de datos (RDS,
+                        DynamoDB) para diseñar arquitecturas web resilientes.</li>
+                </ul>
+
+                <h2 class="text-2xl font-semibold text-teal-700 mb-4">Situaciones de Aprendizaje (SA)</h2>
+                <div class="space-y-3" id="accordion-container">
+                    <!-- SA 1 -->
+                    <button class="accordion-button" data-accordion="sa1">
+                        <span>SA 1: Introducción a la Nube</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa1" class="accordion-content hidden">
+                        <ul>
+                            <li>¿Qué es la computación en la nube? Ventajas.</li>
+                            <li>Modelos de despliegue (IaaS, PaaS, SaaS).</li>
+                            <li>Principios de migración a la nube.</li>
+                            <li>Aspectos fundamentales de los precios y facturación.</li>
+                            <li>Uso de la calculadora de costes de AWS.</li>
+                            <li>Modelos de soporte técnico.</li>
+                        </ul>
+                    </div>
+                    <!-- SA 2 -->
+                    <button class="accordion-button" data-accordion="sa2">
+                        <span>SA 2: Introducción al ecosistema AWS</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa2" class="accordion-content hidden">
+                        <ul>
+                            <li>Infraestructura Global de AWS (Regiones, Zonas de Disponibilidad).</li>
+                            <li>Modelo de responsabilidad compartida.</li>
+                            <li>Gestión de Identidad y Acceso (AWS IAM): Usuarios, grupos, roles y políticas.</li>
+                            <li>Protección de cuentas (MFA) y datos.</li>
+                            <li>Exploración de la consola de administración de AWS.</li>
+                        </ul>
+                    </div>
+                    <!-- SA 3 -->
+                    <button class="accordion-button" data-accordion="sa3">
+                        <span>SA 3: Aprovisionando red y elementos de computación</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa3" class="accordion-content hidden">
+                        <ul>
+                            <li>Redes virtuales: Amazon VPC, subredes públicas y privadas.</li>
+                            <li>Seguridad de red: Grupos de Seguridad y ACLs de red.</li>
+                            <li>Gateways: Internet Gateway (IGW) y NAT Gateway.</li>
+                            <li>Enrutamiento y DNS: Amazon Route 53.</li>
+                            <li>Servicios de cómputo: Amazon EC2 (Máquinas Virtuales).</li>
+                            <li>Tecnologías Serverless (AWS Lambda) y Contenedores.</li>
+                        </ul>
+                    </div>
+                    <!-- SA 4 -->
+                    <button class="accordion-button" data-accordion="sa4">
+                        <span>SA 4: Aprovisionando servicios de almacenamiento</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa4" class="accordion-content hidden">
+                        <ul>
+                            <li>Almacenamiento de objetos: Amazon S3 (Buckets).</li>
+                            <li>Almacenamiento de bloques: Amazon EBS (Volúmenes para EC2).</li>
+                            <li>Almacenamiento de sistema de archivos: Amazon EFS.</li>
+                            <li>Bases de datos relacionales gestionadas: Amazon RDS.</li>
+                            <li>Bases de datos NoSQL: Amazon DynamoDB.</li>
+                        </ul>
+                    </div>
+                    <!-- SA 5 -->
+                    <button class="accordion-button" data-accordion="sa5">
+                        <span>SA 5: Despliegues avanzados</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa5" class="accordion-content hidden">
+                        <ul>
+                            <li>Balanceo de carga: Elastic Load Balancing (ELB).</li>
+                            <li>Escalado automático: Auto Scaling Groups.</li>
+                            <li>Infraestructura como Código (IaC): AWS CloudFormation.</li>
+                            <li>Monitorización y optimización: Amazon CloudWatch.</li>
+                            <li>Principios del marco Well-Architected de AWS.</li>
+                        </ul>
+                    </div>
+                    <!-- SA 6 -->
+                    <button class="accordion-button" data-accordion="sa6">
+                        <span>SA 6: Implantación de la Nube en empresa real (Proyecto)</span>
+                        <span class="accordion-arrow">&#9654;</span>
+                    </button>
+                    <div id="sa6" class="accordion-content hidden">
+                        <ul>
+                            <li>Proyecto práctico final que integra los conocimientos de las SA anteriores para diseñar
+                                y desplegar una arquitectura web completa, escalable y resiliente en AWS.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: EVALUACIÓN -->
+            <section id="evaluacion" class="content-section card">
+                <p class="text-lg text-gray-600 mb-6">
+                    La evaluación es continua y se basa en la superación de todos los Resultados de Aprendizaje (RA).
+                    Aquí puedes ver el peso de cada RA en tu nota final y los métodos que usaremos para evaluarte.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-4">Ponderación de Notas (RA)</h2>
+                        <div class="chart-container">
+                            <canvas id="raChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-4">Reglas Clave de Evaluación</h2>
+                        <div class="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                            <h3 class="font-semibold text-teal-800">Evaluación Continua</h3>
+                            <p class="text-teal-700">La nota se obtiene de la media ponderada de los RA. Las prácticas
+                                (AP) son obligatorias para mantener la evaluación continua.</p>
+                        </div>
+                        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h3 class="font-semibold text-red-800">¡Importante!</h3>
+                            <p class="text-red-700">Para superar el módulo, es necesario superar (nota >= 5)
+                                <strong>todos</strong> los Resultados de Aprendizaje (RA). Si algún RA no está superado,
+                                la nota final máxima del módulo será de 4.</p>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-700 pt-4">Instrumentos de Evaluación</h3>
+                        <ul class="list-disc pl-5">
+                            <li><strong>PO (Prueba Objetiva):</strong> Cuestionarios teóricos.</li>
+                            <li><strong>AP (Práctica):</strong> Laboratorios y supuestos prácticos en AWS.</li>
+                            <li><strong>PI (Proyecto):</strong> Proyecto final (SA 6) que integra todas las
+                                competencias.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: CALENDARIO -->
+            <section id="calendario" class="content-section card">
+                <p class="text-lg text-gray-600 mb-6">
+                    Organiza tu tiempo. Aquí encontrarás las fechas oficiales de exámenes y convocatorias, así como una
+                    planificación orientativa del curso.
+                </p>
+
+                <h2 class="text-2xl font-semibold text-teal-700 mb-4">Fechas de Exámenes y Convocatorias</h2>
+                <div class="space-y-4">
+                    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-4">
+                        <span class="text-2xl mt-1">🗓️</span>
+                        <div>
+                            <h3 class="font-semibold text-yellow-800">Examen 1ª Evaluación</h3>
+                            <p class="text-gray-700"><strong>Fecha:</strong> 26 de noviembre de 2025 (miércoles)</p>
+                            <p class="text-gray-700"><strong>Hora:</strong> 18:05 a 19:55</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-4">
+                        <span class="text-2xl mt-1">🗓️</span>
+                        <div>
+                            <h3 class="font-semibold text-yellow-800">Examen 2ª Evaluación</h3>
+                            <p class="text-gray-700"><strong>Fecha:</strong> 11 de febrero de 2026 (miércoles)</p>
+                            <p class="text-gray-700"><strong>Hora:</strong> 19:00 a 20:50</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-4">
+                        <span class="text-2xl mt-1">✅</span>
+                        <div>
+                            <h3 class="font-semibold text-blue-800">Convocatoria Ordinaria</h3>
+                            <p class="text-gray-700"><strong>Fecha:</strong> 10 de junio de 2026 (miércoles)</p>
+                            <p class="text-gray-700"><strong>Hora:</strong> 18:05 a 19:55</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-4">
+                        <span class="text-2xl mt-1">🔄</span>
+                        <div>
+                            <h3 class="font-semibold text-red-800">Convocatoria Extraordinaria</h3>
+                            <p class="text-gray-700"><strong>Fecha:</strong> 30 de junio de 2026 (martes)</p>
+                            <p class="text-gray-700"><strong>Hora:</strong> 16:50 a 19:00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-semibold text-teal-700 mt-8 mb-4">Cronograma Orientativo</h2>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Septiembre - Noviembre 2025:</strong> SA 1, SA 2, SA 3.</li>
+                    <li><strong>Diciembre 2025 - Febrero 2026:</strong> SA 4, SA 5.</li>
+                    <li><strong>Febrero - Junio 2026:</strong> SA 6 (Proyecto Final).</li>
+                </ul>
+            </section>
+
+            <!-- SECCIÓN 5: TUTORÍAS Y CONTACTO -->
+            <section id="tutorias" class="content-section card">
+                <p class="text-lg text-gray-600 mb-6">
+                    No estás solo en este proceso. Utiliza las tutorías para resolver dudas y el correo electrónico para
+                    comunicarte con la profesora.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Columna de Horarios y Contacto -->
+                    <div class="space-y-6">
+                        <div>
+                            <h2 class="text-2xl font-semibold text-teal-700 mb-3">Horarios de Tutorías</h2>
+                            <div class="p-4 bg-gray-100 rounded-lg mb-4">
+                                <h3 class="font-semibold text-gray-800">Tutorías Colectivas (Presencial/Síncrona)</h3>
+                                <p class="text-gray-700"><strong>Cuándo:</strong> Miércoles, 19:55 - 20:50</p>
+                                <p class="text-sm text-gray-500">Sesión principal de la semana para explicaciones y
+                                    dudas comunes.</p>
+                            </div>
+                            <div class="p-4 bg-gray-100 rounded-lg">
+                                <h3 class="font-semibold text-gray-800">Tutorías Individuales</h3>
+                                <p class="text-gray-700"><strong>Cuándo:</strong> Lunes, 11:00 - 11:55</p>
+                                <p class="text-sm text-gray-500"><strong>Importante:</strong> Si se desea presencial,
+                                    debe concretarse con la profesora como mínimo el viernes anterior.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-semibold text-teal-700 mb-3">Canales de Comunicación</h2>
+                            <h3 class="font-semibold text-gray-800">Correo Electrónico</h3>
+                            <p class="text-gray-700"><code>anamartinez.informatica@iespacomolla.es</code></p>
+                            <p class="text-gray-700"><code>aj.martinezmontesi@edu.gva.es</code></p>
+                            <h3 class="font-semibold text-gray-800 mt-4">Plataformas</h3>
+                            <p class="text-gray-700">Mensajería directa de <strong>AULES</strong> y
+                                <strong>WebFamilia</strong>.</p>
+                            <p class="text-sm text-gray-500">Utiliza los foros de AULES para dudas generales.</p>
+                        </div>
+                    </div>
+
+                    <!-- Columna de Ubicación -->
+                    <div>
+                        <h2 class="text-2xl font-semibold text-teal-700 mb-3">Ubicación</h2>
+                        <p class="mb-4">Las tutorías colectivas presenciales y los exámenes se realizarán, por norma
+                            general, en el aula de informática <strong>MATICA 2</strong> (primera planta).</p>
+                        <img src="https://i.imgur.com/L53j6A6.png"
+                            alt="Mapa del aula Matica 2 en el IES Poeta Paco Mollá"
+                            class="w-full rounded-lg border border-gray-300 shadow-md"
+                            onerror="this.onerror=null; this.src='https://placehold.co/600x400/f0f0f0/999?text=Mapa+del+Aula+(MATICA+2)';">
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // --- Lógica de Navegación por Pestañas ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mainContent = document.querySelector('main');
+
+            function showSection(targetId) {
+                contentSections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('nav-link-active');
+                    } else {
+                        link.classList.remove('nav-link-active');
+                    }
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const targetId = e.target.dataset.target;
+                    showSection(targetId);
+                });
+            });
+
+            showSection('inicio');
+
+            // --- Lógica del Gráfico Chart.js ---
+            const raChartCtx = document.getElementById('raChart');
+            if (raChartCtx) {
+                const raChart = new Chart(raChartCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: [
+                            'RA1: Fundamentos (10%)',
+                            'RA2: Infra/Seguridad (10%)',
+                            'RA3: Red/Cómputo (45%)',
+                            'RA4: Almacenamiento/Arq. (35%)'
+                        ],
+                        datasets: [{
+                            label: 'Ponderación de Notas',
+                            data: [10, 10, 45, 35],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.7)', // Blue
+                                'rgba(16, 185, 129, 0.7)', // Green
+                                'rgba(249, 115, 22, 0.7)',  // Orange
+                                'rgba(239, 68, 68, 0.7)'    // Red
+                            ],
+                            borderColor: [
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(249, 115, 22, 1)',
+                                'rgba(239, 68, 68, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label = label.split(':')[0];
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += ': ' + context.parsed + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- Lógica de Acordeón ---
+            const accordionContainer = document.getElementById('accordion-container');
+            if (accordionContainer) {
+                accordionContainer.addEventListener('click', function (e) {
+                    const button = e.target.closest('.accordion-button');
+                    if (button) {
+                        const contentId = button.dataset.accordion;
+                        const content = document.getElementById(contentId);
+
+                        button.classList.toggle('open');
+                        content.classList.toggle('hidden');
+                    }
+                });
+            }
+
+        });
+    </script>
+</body>
+
+</html>
